@@ -4,13 +4,14 @@ import { Trash2, ChevronLeft, ChevronRight, Sparkles, Wallet, CalendarDays } fro
 const FONT_IMPORT_ID = "income-diary-font";
 
 const CATEGORIES = [
-  { key: "A", label: "A", color: "#FF6FA5", soft: "#FFE3EE" },
-  { key: "B", label: "B", color: "#22C39A", soft: "#DCF8EF" },
-  { key: "C", label: "C", color: "#FFB100", soft: "#FFF1D1" },
-  { key: "その他", label: "その他", color: "#9B7EDE", soft: "#ECE3FB" },
+  { key: "こまどり", label: "こまどり", color: "#3EA8E0", soft: "#DFF1FC" },
+  { key: "玉響", label: "玉響", color: "#22C39A", soft: "#DCF8EF" },
+  { key: "アートメイク", label: "アートメイク", color: "#FFB100", soft: "#FFF1D1" },
+  { key: "Amway", label: "Amway", color: "#9B7EDE", soft: "#ECE3FB" },
+  { key: "その他", label: "その他", color: "#9B8AA8", soft: "#ECE7F1" },
 ];
 
-const catInfo = (key) => CATEGORIES.find((c) => c.key === key) || CATEGORIES[3];
+const catInfo = (key) => CATEGORIES.find((c) => c.key === key) || CATEGORIES[4];
 
 const JELLY_MESSAGES = [
   "なち、おつかれさま",
@@ -61,11 +62,17 @@ function monthLabel(monthKey) {
   return `${y}年${m}月`;
 }
 
+function formatDateDisplay(dateStr) {
+  if (!dateStr) return "";
+  const [y, m, d] = dateStr.split("-");
+  return `${y}/${m}/${d}`;
+}
+
 // --- Mascot: きらきらクラゲ貯金箱 ---
 function JellyMascot({ pct, celebrate, speech }) {
   const clamped = Math.max(4, Math.min(100, pct));
   return (
-    <div className="jelly-wrap">
+    <div className="jelly-wrap" id="jellyWrap">
       {speech && <div className="speech-bubble show">{speech}</div>}
       <div className={"jelly-blob" + (celebrate ? " jelly-pop" : "")}>
         <div className="jelly-liquid" style={{ height: `${clamped}%` }}>
@@ -115,7 +122,7 @@ export default function IncomeDiary() {
   const speechTimer = useRef(null);
 
   const [date, setDate] = useState(todayStr());
-  const [category, setCategory] = useState("A");
+  const [category, setCategory] = useState("こまどり");
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
   const [saving, setSaving] = useState(false);
@@ -234,6 +241,7 @@ export default function IncomeDiary() {
     setAmount("");
     setMemo("");
     setSaving(false);
+    document.getElementById("jellyWrap")?.scrollIntoView({ behavior: "smooth", block: "center" });
     setCelebrate(true);
     clearTimeout(celebrateTimer.current);
     celebrateTimer.current = setTimeout(() => setCelebrate(false), 900);
@@ -371,17 +379,33 @@ export default function IncomeDiary() {
 
         .field-label { font-size: 12.5px; font-weight: 700; color: #9B8AA8; margin-bottom: 6px; display: block; }
         .field { margin-bottom: 16px; }
-        input[type="date"], input[type="number"], input[type="text"] {
+        input[type="number"], input[type="text"] {
           width: 100%; border: 2px solid #F1E5EF; background: #FFFBFD;
           border-radius: 14px; padding: 11px 13px; font-size: 15px;
           font-family: inherit; color: #3A2E4D; outline: none; transition: border 0.2s;
         }
         input:focus { border-color: #FF9EC0; }
 
-        .chip-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .date-field { position: relative; width: 100%; }
+        .date-native {
+          position: absolute; inset: 0; width: 100%; height: 100%;
+          opacity: 0; margin: 0; padding: 0; border: none; background: transparent;
+          z-index: 2; cursor: pointer;
+        }
+        .date-display {
+          width: 100%; box-sizing: border-box; min-height: 45px;
+          display: flex; align-items: center;
+          border: 2px solid #F1E5EF; background: #FFFBFD;
+          border-radius: 14px; padding: 11px 13px; font-size: 15px;
+          font-family: inherit; color: #3A2E4D; pointer-events: none; transition: border 0.2s;
+        }
+        .date-field:focus-within .date-display { border-color: #FF9EC0; }
+
+        .chip-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
         .chip {
-          border: 2.5px solid transparent; border-radius: 14px; padding: 10px 0;
-          flex: 1; min-width: 60px; text-align: center; font-weight: 800; font-size: 14px;
+          border: 2.5px solid transparent; border-radius: 14px; padding: 6px 4px;
+          min-height: 46px; display: flex; align-items: center; justify-content: center;
+          text-align: center; font-weight: 800; font-size: 12.5px; line-height: 1.25;
           cursor: pointer; transition: all 0.15s; font-family: inherit;
         }
         .chip.selected { transform: translateY(-2px); box-shadow: 0 5px 0 rgba(0,0,0,0.06); }
@@ -430,7 +454,7 @@ export default function IncomeDiary() {
           background: #fff; border-radius: 16px; padding: 12px 14px; margin-bottom: 8px;
           display: flex; align-items: center; gap: 10px; box-shadow: 0 3px 10px rgba(155,126,222,0.10);
         }
-        .cat-badge { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; flex-shrink: 0; }
+        .cat-badge { min-width: 34px; height: 26px; padding: 0 9px; border-radius: 13px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; flex-shrink: 0; white-space: nowrap; }
         .entry-mid { flex: 1; min-width: 0; }
         .entry-amt { font-weight: 800; font-size: 15px; }
         .entry-memo { font-size: 12px; color: #9B8AA8; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -492,7 +516,10 @@ export default function IncomeDiary() {
             <div className="card">
               <div className="field">
                 <label className="field-label">日付</label>
-                <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                <div className="date-field">
+                  <input type="date" className="date-native" value={date} onChange={(e) => setDate(e.target.value)} />
+                  <div className="date-display">{formatDateDisplay(date)}</div>
+                </div>
               </div>
 
               <div className="field">

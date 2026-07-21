@@ -136,17 +136,34 @@
 
   .field-label { font-size: 12.5px; font-weight: 700; color: #9B8AA8; margin-bottom: 6px; display: block; }
   .field { margin-bottom: 16px; }
-  input[type="date"], input[type="number"], input[type="text"] {
+  input[type="number"], input[type="text"] {
     width: 100%; border: 2px solid #F1E5EF; background: #FFFBFD;
     border-radius: 14px; padding: 11px 13px; font-size: 15px;
     font-family: inherit; color: #3A2E4D; outline: none; transition: border 0.2s;
   }
   input:focus { border-color: #FF9EC0; }
 
-  .chip-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  /* 日付欄：ネイティブinputは透明にして裏に敷き、見た目は自前のdivで左寄せ描画する（iOS Safariの中央寄せを回避） */
+  .date-field { position: relative; width: 100%; }
+  .date-native {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    opacity: 0; margin: 0; padding: 0; border: none; background: transparent;
+    z-index: 2; cursor: pointer;
+  }
+  .date-display {
+    width: 100%; box-sizing: border-box; min-height: 45px;
+    display: flex; align-items: center;
+    border: 2px solid #F1E5EF; background: #FFFBFD;
+    border-radius: 14px; padding: 11px 13px; font-size: 15px;
+    font-family: inherit; color: #3A2E4D; pointer-events: none; transition: border 0.2s;
+  }
+  .date-field:focus-within .date-display { border-color: #FF9EC0; }
+
+  .chip-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
   .chip {
-    border: 2.5px solid transparent; border-radius: 14px; padding: 10px 0;
-    flex: 1; min-width: 60px; text-align: center; font-weight: 800; font-size: 14px;
+    border: 2.5px solid transparent; border-radius: 14px; padding: 6px 4px;
+    min-height: 46px; display: flex; align-items: center; justify-content: center;
+    text-align: center; font-weight: 800; font-size: 12.5px; line-height: 1.25;
     cursor: pointer; transition: all 0.15s; font-family: inherit;
     background: #F9F6FB; color: #B3A4C7;
   }
@@ -196,7 +213,7 @@
     background: #fff; border-radius: 16px; padding: 12px 14px; margin-bottom: 8px;
     display: flex; align-items: center; gap: 10px; box-shadow: 0 3px 10px rgba(155,126,222,0.10);
   }
-  .cat-badge { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; flex-shrink: 0; }
+  .cat-badge { min-width: 34px; height: 26px; padding: 0 9px; border-radius: 13px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; flex-shrink: 0; white-space: nowrap; }
   .entry-mid { flex: 1; min-width: 0; }
   .entry-amt { font-weight: 800; font-size: 15px; }
   .entry-memo { font-size: 12px; color: #9B8AA8; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -234,7 +251,7 @@
   <div class="header">
     <p class="title">おかね日記</p>
     <p class="subtitle">きょうの記録、くらげが見守るよ</p>
-    <div class="jelly-wrap">
+    <div class="jelly-wrap" id="jellyWrap">
       <div class="jelly-blob" id="jellyBlob">
         <div class="jelly-liquid" id="jellyLiquid" style="height:4%">
           <div class="wave wave1"></div>
@@ -269,7 +286,10 @@
     <div class="card">
       <div class="field">
         <label class="field-label">日付</label>
-        <input type="date" id="dateInput">
+        <div class="date-field">
+          <input type="date" id="dateInput" class="date-native">
+          <div class="date-display" id="dateDisplay"></div>
+        </div>
       </div>
       <div class="field">
         <label class="field-label">項目</label>
@@ -327,10 +347,11 @@
 
 <script>
 const CATEGORIES = [
-  { key: "A", label: "A", color: "#FF6FA5", soft: "#FFE3EE" },
-  { key: "B", label: "B", color: "#22C39A", soft: "#DCF8EF" },
-  { key: "C", label: "C", color: "#FFB100", soft: "#FFF1D1" },
-  { key: "その他", label: "その他", color: "#9B7EDE", soft: "#ECE3FB" },
+  { key: "こまどり", label: "こまどり", color: "#3EA8E0", soft: "#DFF1FC" },
+  { key: "玉響", label: "玉響", color: "#22C39A", soft: "#DCF8EF" },
+  { key: "アートメイク", label: "アートメイク", color: "#FFB100", soft: "#FFF1D1" },
+  { key: "Amway", label: "Amway", color: "#9B7EDE", soft: "#ECE3FB" },
+  { key: "その他", label: "その他", color: "#9B8AA8", soft: "#ECE7F1" },
 ];
 const STORAGE_KEY = "income-diary-entries";
 const JELLY_MESSAGES = [
@@ -347,7 +368,7 @@ const JELLY_MESSAGES = [
 ];
 let speechTimer = null;
 
-function catInfo(key) { return CATEGORIES.find(c => c.key === key) || CATEGORIES[3]; }
+function catInfo(key) { return CATEGORIES.find(c => c.key === key) || CATEGORIES[4]; }
 function todayStr() {
   const d = new Date();
   const tz = d.getTimezoneOffset() * 60000;
@@ -383,17 +404,28 @@ function saveEntries(entries) {
 }
 
 let entries = loadEntries();
-let category = "A";
+let category = "こまどり";
 let tab = "input";
 let historyMonth = monthStr(todayStr());
 let summaryYear = yearStr(todayStr());
 
 const dateInput = document.getElementById("dateInput");
+const dateDisplay = document.getElementById("dateDisplay");
 const chipRow = document.getElementById("chipRow");
 const amountInput = document.getElementById("amountInput");
 const memoInput = document.getElementById("memoInput");
 const addBtn = document.getElementById("addBtn");
 dateInput.value = todayStr();
+
+function updateDateDisplay() {
+  const v = dateInput.value;
+  if (!v) { dateDisplay.textContent = ""; return; }
+  const [y, m, d] = v.split("-");
+  dateDisplay.textContent = `${y}/${m}/${d}`;
+}
+dateInput.addEventListener("change", updateDateDisplay);
+dateInput.addEventListener("input", updateDateDisplay);
+updateDateDisplay();
 
 CATEGORIES.forEach(c => {
   const btn = document.createElement("button");
@@ -547,6 +579,7 @@ addBtn.addEventListener("click", () => {
   saveEntries(entries);
   amountInput.value = "";
   memoInput.value = "";
+  document.getElementById("jellyWrap").scrollIntoView({ behavior: "smooth", block: "center" });
   celebrate();
   showSpeech();
   renderAll();
