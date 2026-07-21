@@ -93,6 +93,27 @@
   .confetti-piece { position: absolute; top: 10%; width: 7px; height: 10px; border-radius: 2px; animation: fall 0.9s ease-out forwards; }
   @keyframes fall { 0% { top: 10%; opacity: 1; } 100% { top: 95%; opacity: 0; } }
 
+  .speech-bubble {
+    position: absolute; top: -8px; left: 50%;
+    transform: translate(-50%, -100%) scale(0.8);
+    background: #fff; color: #3A2E4D; font-weight: 700; font-size: 13px;
+    padding: 10px 16px; border-radius: 16px; white-space: nowrap;
+    border: 2.5px solid #3A2E4D; box-shadow: 0 4px 10px rgba(58,46,77,0.15);
+    opacity: 0; pointer-events: none; z-index: 5;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .speech-bubble::after {
+    content: ""; position: absolute; bottom: -9px; left: 50%; transform: translateX(-50%);
+    border-width: 9px 7px 0 7px; border-style: solid;
+    border-color: #3A2E4D transparent transparent transparent;
+  }
+  .speech-bubble::before {
+    content: ""; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
+    border-width: 7px 6px 0 6px; border-style: solid;
+    border-color: #fff transparent transparent transparent; z-index: 1;
+  }
+  .speech-bubble.show { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+
   .today-line { text-align: center; font-size: 13px; color: #7A6B90; margin-bottom: 14px; }
   .today-line b { color: #FF4785; font-size: 15px; }
 
@@ -233,6 +254,7 @@
         <div class="tentacle t4"></div>
       </div>
       <div class="confetti" id="confetti"></div>
+      <div class="speech-bubble" id="speechBubble"></div>
     </div>
     <p class="today-line">今日の合計 <b id="todayLine">¥0</b></p>
   </div>
@@ -311,6 +333,19 @@ const CATEGORIES = [
   { key: "その他", label: "その他", color: "#9B7EDE", soft: "#ECE3FB" },
 ];
 const STORAGE_KEY = "income-diary-entries";
+const JELLY_MESSAGES = [
+  "なち、おつかれさま",
+  "なち、今日も頑張ったね",
+  "明日もがんばろう",
+  "なち、お腹すいた？",
+  "お金貯まったら何しよう？",
+  "なち、なち、なち、なち",
+  "あたらしい服買う？",
+  "焼き鳥りりあ行く？",
+  "焼肉食べたい",
+  "僕、クラゲなんよ",
+];
+let speechTimer = null;
 
 function catInfo(key) { return CATEGORIES.find(c => c.key === key) || CATEGORIES[3]; }
 function todayStr() {
@@ -473,6 +508,15 @@ function renderYearSummary() {
 
 function renderAll() { renderSummary(); renderHistory(); renderYearSummary(); }
 
+function showSpeech() {
+  const bubble = document.getElementById("speechBubble");
+  const msg = JELLY_MESSAGES[Math.floor(Math.random() * JELLY_MESSAGES.length)];
+  bubble.textContent = msg;
+  bubble.classList.add("show");
+  clearTimeout(speechTimer);
+  speechTimer = setTimeout(() => { bubble.classList.remove("show"); }, 2800);
+}
+
 function celebrate() {
   const blob = document.getElementById("jellyBlob");
   blob.classList.add("jelly-pop");
@@ -504,6 +548,7 @@ addBtn.addEventListener("click", () => {
   amountInput.value = "";
   memoInput.value = "";
   celebrate();
+  showSpeech();
   renderAll();
 });
 

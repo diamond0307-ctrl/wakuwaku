@@ -12,6 +12,19 @@ const CATEGORIES = [
 
 const catInfo = (key) => CATEGORIES.find((c) => c.key === key) || CATEGORIES[3];
 
+const JELLY_MESSAGES = [
+  "なち、おつかれさま",
+  "なち、今日も頑張ったね",
+  "明日もがんばろう",
+  "なち、お腹すいた？",
+  "お金貯まったら何しよう？",
+  "なち、なち、なち、なち",
+  "あたらしい服買う？",
+  "焼き鳥りりあ行く？",
+  "焼肉食べたい",
+  "僕、クラゲなんよ",
+];
+
 function todayStr() {
   const d = new Date();
   const tz = d.getTimezoneOffset() * 60000;
@@ -20,6 +33,10 @@ function todayStr() {
 
 function monthStr(dateStr) {
   return dateStr.slice(0, 7);
+}
+
+function yearStr(dateStr) {
+  return dateStr.slice(0, 4);
 }
 
 function formatYen(n) {
@@ -45,10 +62,11 @@ function monthLabel(monthKey) {
 }
 
 // --- Mascot: きらきらクラゲ貯金箱 ---
-function JellyMascot({ pct, celebrate }) {
+function JellyMascot({ pct, celebrate, speech }) {
   const clamped = Math.max(4, Math.min(100, pct));
   return (
     <div className="jelly-wrap">
+      {speech && <div className="speech-bubble show">{speech}</div>}
       <div className={"jelly-blob" + (celebrate ? " jelly-pop" : "")}>
         <div className="jelly-liquid" style={{ height: `${clamped}%` }}>
           <div className="wave wave1" />
@@ -91,8 +109,10 @@ export default function IncomeDiary() {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [tab, setTab] = useState("input"); // input | history
+  const [tab, setTab] = useState("input"); // input | history | summary
   const [celebrate, setCelebrate] = useState(false);
+  const [speech, setSpeech] = useState("");
+  const speechTimer = useRef(null);
 
   const [date, setDate] = useState(todayStr());
   const [category, setCategory] = useState("A");
@@ -100,6 +120,7 @@ export default function IncomeDiary() {
   const [memo, setMemo] = useState("");
   const [saving, setSaving] = useState(false);
   const [historyMonth, setHistoryMonth] = useState(monthStr(todayStr()));
+  const [summaryYear, setSummaryYear] = useState(yearStr(todayStr()));
   const celebrateTimer = useRef(null);
 
   // inject rounded font once
@@ -173,6 +194,29 @@ export default function IncomeDiary() {
       }));
   }, [entries, historyMonth]);
 
+  const yearTotal = useMemo(
+    () =>
+      entries
+        .filter((e) => yearStr(e.date) === summaryYear)
+        .reduce((s, e) => s + Number(e.amount), 0),
+    [entries, summaryYear]
+  );
+
+  const monthsInYear = useMemo(() => {
+    const list = [];
+    for (let m = 1; m <= 12; m++) {
+      const key = `${summaryYear}-${String(m).padStart(2, "0")}`;
+      const monthEntries = entries.filter((e) => monthStr(e.date) === key);
+      list.push({
+        key,
+        m,
+        total: monthEntries.reduce((s, e) => s + Number(e.amount), 0),
+        count: monthEntries.length,
+      });
+    }
+    return list;
+  }, [entries, summaryYear]);
+
   async function handleAdd() {
     const amt = Number(amount);
     if (!date || !amt || amt <= 0 || saving) return;
@@ -193,6 +237,9 @@ export default function IncomeDiary() {
     setCelebrate(true);
     clearTimeout(celebrateTimer.current);
     celebrateTimer.current = setTimeout(() => setCelebrate(false), 900);
+    setSpeech(JELLY_MESSAGES[Math.floor(Math.random() * JELLY_MESSAGES.length)]);
+    clearTimeout(speechTimer.current);
+    speechTimer.current = setTimeout(() => setSpeech(""), 2800);
   }
 
   async function handleDelete(id) {
@@ -280,6 +327,27 @@ export default function IncomeDiary() {
         .confetti { position: absolute; inset: 0; pointer-events: none; }
         .confetti-piece { position: absolute; top: 10%; width: 7px; height: 10px; border-radius: 2px; animation: fall 0.9s ease-out forwards; }
         @keyframes fall { 0% { top: 10%; opacity: 1; } 100% { top: 95%; opacity: 0; } }
+
+        .speech-bubble {
+          position: absolute; top: -8px; left: 50%;
+          transform: translate(-50%, -100%) scale(0.8);
+          background: #fff; color: #3A2E4D; font-weight: 700; font-size: 13px;
+          padding: 10px 16px; border-radius: 16px; white-space: nowrap;
+          border: 2.5px solid #3A2E4D; box-shadow: 0 4px 10px rgba(58,46,77,0.15);
+          opacity: 0; pointer-events: none; z-index: 5;
+          transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        .speech-bubble::after {
+          content: ""; position: absolute; bottom: -9px; left: 50%; transform: translateX(-50%);
+          border-width: 9px 7px 0 7px; border-style: solid;
+          border-color: #3A2E4D transparent transparent transparent;
+        }
+        .speech-bubble::before {
+          content: ""; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
+          border-width: 7px 6px 0 6px; border-style: solid;
+          border-color: #fff transparent transparent transparent; z-index: 1;
+        }
+        .speech-bubble.show { opacity: 1; transform: translate(-50%, -100%) scale(1); }
 
         .today-line { text-align: center; font-size: 13px; color: #7A6B90; margin-bottom: 14px; }
         .today-line b { color: #FF4785; font-size: 15px; }
@@ -372,13 +440,34 @@ export default function IncomeDiary() {
         .empty-state .emoji { font-size: 34px; margin-bottom: 8px; }
 
         .loading { text-align: center; padding: 60px 0; color: #B3A4C7; font-weight: 700; }
+
+        .year-banner {
+          text-align: center; background: linear-gradient(90deg,#FFE3EE,#ECE3FB);
+          border-radius: 20px; padding: 18px; margin-bottom: 16px;
+        }
+        .year-banner .label { font-size: 12.5px; font-weight: 700; color: #8A7A9E; margin-bottom: 4px; }
+        .year-banner .value { font-size: 26px; font-weight: 800; color: #FF4785; }
+
+        .month-card {
+          background: #fff; border-radius: 16px; padding: 13px 16px; margin-bottom: 8px;
+          display: flex; align-items: center; justify-content: space-between;
+          box-shadow: 0 3px 10px rgba(155,126,222,0.10); cursor: pointer; border: 2px solid transparent;
+          transition: border 0.15s, transform 0.1s;
+        }
+        .month-card:hover { border-color: #FFCFE1; transform: translateY(-1px); }
+        .month-card.empty { opacity: 0.45; cursor: default; }
+        .month-card .m-name { font-weight: 800; font-size: 15px; }
+        .month-card .m-total { font-weight: 800; font-size: 15px; color: #FF4785; }
+        .month-card .m-count { font-size: 11.5px; color: #B3A4C7; margin-left: 6px; }
+
+        .connect-note { text-align: center; font-size: 11.5px; color: #B3A4C7; margin-top: 18px; line-height: 1.6; }
       `}</style>
 
       <div className="shell">
         <div className="header">
           <p className="title">おかね日記</p>
           <p className="subtitle">きょうの記録、くらげが見守るよ</p>
-          <JellyMascot pct={mascotPct} celebrate={celebrate} />
+          <JellyMascot pct={mascotPct} celebrate={celebrate} speech={speech} />
           <p className="today-line">
             今日の合計 <b>{formatYen(todayTotal)}</b>
           </p>
@@ -390,6 +479,9 @@ export default function IncomeDiary() {
           </button>
           <button className={"tab-btn" + (tab === "history" ? " active" : "")} onClick={() => setTab("history")}>
             りれき
+          </button>
+          <button className={"tab-btn" + (tab === "summary" ? " active" : "")} onClick={() => setTab("summary")}>
+            集計
           </button>
         </div>
 
@@ -465,7 +557,7 @@ export default function IncomeDiary() {
               </div>
             </div>
           </>
-        ) : (
+        ) : tab === "history" ? (
           <>
             <div className="month-nav">
               <button onClick={() => setHistoryMonth((m) => shiftMonth(m, -1))}>
@@ -515,6 +607,46 @@ export default function IncomeDiary() {
                 </div>
               ))
             )}
+          </>
+        ) : null}
+
+        {!loading && tab === "summary" && (
+          <>
+            <div className="month-nav">
+              <button onClick={() => setSummaryYear((y) => String(Number(y) - 1))}>
+                <ChevronLeft size={18} />
+              </button>
+              <div className="month-label">
+                <CalendarDays size={17} /> {summaryYear}年
+              </div>
+              <button onClick={() => setSummaryYear((y) => String(Number(y) + 1))}>
+                <ChevronRight size={18} />
+              </button>
+            </div>
+
+            <div className="year-banner">
+              <div className="label">年間の合計</div>
+              <div className="value">{formatYen(yearTotal)}</div>
+            </div>
+
+            {monthsInYear.map((mo) => (
+              <div
+                key={mo.key}
+                className={"month-card" + (mo.count === 0 ? " empty" : "")}
+                onClick={() => {
+                  if (mo.count === 0) return;
+                  setHistoryMonth(mo.key);
+                  setTab("history");
+                }}
+              >
+                <span className="m-name">
+                  {mo.m}月{mo.count > 0 && <span className="m-count">{mo.count}件</span>}
+                </span>
+                <span className="m-total">{formatYen(mo.total)}</span>
+              </div>
+            ))}
+
+            <div className="connect-note">スプレッドシート連携を追加すると、ここに顧客ごとの記録も表示できるようになります</div>
           </>
         )}
 
