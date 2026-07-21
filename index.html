@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>おかね日記</title>
+
+<!-- iPhoneホーム画面に追加した時にアプリらしく見せるための設定 -->
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="おかね日記">
+<meta name="theme-color" content="#FF6FA5">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', sans-serif;
+    background: radial-gradient(circle at 15% 0%, #FFE9F3 0%, #FFF3F8 45%, #FFF9EF 100%);
+    min-height: 100vh;
+    color: #3A2E4D;
+    padding: 20px 14px 60px;
+  }
+  .shell { max-width: 460px; margin: 0 auto; }
+
+  .header { text-align: center; padding-top: 4px; }
+  .title {
+    font-size: 26px; font-weight: 800; letter-spacing: 0.5px;
+    background: linear-gradient(90deg, #FF6FA5, #9B7EDE);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    margin: 0 0 2px;
+  }
+  .subtitle { font-size: 12.5px; color: #9B8AA8; margin: 0 0 10px; }
+
+  .jelly-wrap { position: relative; width: 150px; height: 150px; margin: 6px auto 4px; }
+  .jelly-blob {
+    width: 100%; height: 100%;
+    background: #ffffff;
+    border: 3.5px solid #3A2E4D;
+    border-radius: 46% 54% 58% 42% / 55% 48% 52% 45%;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 10px 0 rgba(58,46,77,0.06), 0 8px 20px rgba(255,111,165,0.25);
+    transition: transform 0.25s ease;
+  }
+  .jelly-pop { animation: pop 0.5s ease; }
+  @keyframes pop { 0%{transform:scale(1)} 30%{transform:scale(1.12) rotate(-2deg)} 60%{transform:scale(0.96) rotate(2deg)} 100%{transform:scale(1)} }
+
+  .jelly-liquid {
+    position: absolute; bottom: 0; left: 0; width: 100%;
+    background: linear-gradient(180deg, #FFA9C9 0%, #FF6FA5 100%);
+    transition: height 0.6s cubic-bezier(.34,1.56,.64,1);
+    overflow: hidden;
+  }
+  .wave {
+    position: absolute; left: 50%; top: -60%;
+    width: 220%; height: 220%;
+    border-radius: 42%;
+    background: rgba(255,255,255,0.22);
+    transform: translate(-50%, 0) rotate(0deg);
+  }
+  .wave1 { animation: spin 7s linear infinite; }
+  .wave2 { animation: spin 11s linear infinite reverse; background: rgba(255,255,255,0.14); }
+  @keyframes spin { from { transform: translate(-50%,0) rotate(0deg);} to { transform: translate(-50%,0) rotate(360deg);} }
+
+  .jelly-face { position: absolute; top: 40%; left: 50%; transform: translate(-50%,-50%); width: 60px; z-index: 3; }
+  .eye { width: 8px; height: 8px; border-radius: 50%; background: #3A2E4D; position: absolute; top: 0; }
+  .eye-l { left: 14px; } .eye-r { left: 38px; }
+  .mouth { position: absolute; top: 12px; left: 22px; width: 16px; height: 8px; border-radius: 0 0 16px 16px; border: 2.5px solid #3A2E4D; border-top: none; }
+
+  .tentacle {
+    position: absolute; bottom: -6px; width: 6px; height: 22px;
+    background: #3A2E4D; border-radius: 4px; opacity: 0.85;
+    animation: wiggle 1.8s ease-in-out infinite;
+  }
+  .t1 { left: 26%; animation-delay: 0s; }
+  .t2 { left: 42%; animation-delay: 0.3s; }
+  .t3 { left: 56%; animation-delay: 0.15s; }
+  .t4 { left: 70%; animation-delay: 0.45s; }
+  @keyframes wiggle { 0%,100%{ transform: rotate(-8deg);} 50%{ transform: rotate(8deg);} }
+
+  .bubble { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.55); animation: rise 3.5s linear infinite; }
+  .b1 { width: 6px; height: 6px; left: 30%; bottom: 6px; animation-delay: 0s; }
+  .b2 { width: 4px; height: 4px; left: 55%; bottom: 6px; animation-delay: 1s; }
+  .b3 { width: 5px; height: 5px; left: 68%; bottom: 6px; animation-delay: 2s; }
+  @keyframes rise { 0% { transform: translateY(0); opacity: 0.9; } 100% { transform: translateY(-70px); opacity: 0; } }
+
+  .confetti { position: absolute; inset: 0; pointer-events: none; }
+  .confetti-piece { position: absolute; top: 10%; width: 7px; height: 10px; border-radius: 2px; animation: fall 0.9s ease-out forwards; }
+  @keyframes fall { 0% { top: 10%; opacity: 1; } 100% { top: 95%; opacity: 0; } }
+
+  .today-line { text-align: center; font-size: 13px; color: #7A6B90; margin-bottom: 14px; }
+  .today-line b { color: #FF4785; font-size: 15px; }
+
+  .tabs {
+    display: flex; background: #fff; border-radius: 999px; padding: 4px;
+    box-shadow: 0 4px 14px rgba(155,126,222,0.15); margin-bottom: 16px;
+  }
+  .tab-btn {
+    flex: 1; border: none; background: transparent; padding: 10px 0;
+    border-radius: 999px; font-family: inherit; font-weight: 700; font-size: 14px;
+    color: #B3A4C7; cursor: pointer; transition: all 0.25s;
+  }
+  .tab-btn.active { background: linear-gradient(90deg,#FF6FA5,#9B7EDE); color: #fff; box-shadow: 0 4px 10px rgba(255,111,165,0.35); }
+
+  .card {
+    background: #fff; border-radius: 22px; padding: 18px;
+    box-shadow: 0 6px 18px rgba(155,126,222,0.12);
+    margin-bottom: 14px;
+  }
+
+  .field-label { font-size: 12.5px; font-weight: 700; color: #9B8AA8; margin-bottom: 6px; display: block; }
+  .field { margin-bottom: 16px; }
+  input[type="date"], input[type="number"], input[type="text"] {
+    width: 100%; border: 2px solid #F1E5EF; background: #FFFBFD;
+    border-radius: 14px; padding: 11px 13px; font-size: 15px;
+    font-family: inherit; color: #3A2E4D; outline: none; transition: border 0.2s;
+  }
+  input:focus { border-color: #FF9EC0; }
+
+  .chip-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    border: 2.5px solid transparent; border-radius: 14px; padding: 10px 0;
+    flex: 1; min-width: 60px; text-align: center; font-weight: 800; font-size: 14px;
+    cursor: pointer; transition: all 0.15s; font-family: inherit;
+    background: #F9F6FB; color: #B3A4C7;
+  }
+  .chip.selected { transform: translateY(-2px); box-shadow: 0 5px 0 rgba(0,0,0,0.06); }
+
+  .amount-yen { position: relative; }
+  .amount-yen span { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: #C9BBD8; font-weight: 700; }
+  .amount-yen input { padding-left: 30px; font-weight: 700; font-size: 17px; }
+
+  .add-btn {
+    width: 100%; border: none; padding: 15px; border-radius: 16px;
+    background: linear-gradient(90deg,#FF6FA5,#FF4785); color: #fff;
+    font-family: inherit; font-weight: 800; font-size: 16px; cursor: pointer;
+    box-shadow: 0 6px 0 #D63C74; display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: transform 0.08s;
+  }
+  .add-btn:active { transform: translateY(3px); box-shadow: 0 3px 0 #D63C74; }
+  .add-btn:disabled { background: #EADFF0; box-shadow: 0 6px 0 #D8CBE2; cursor: not-allowed; }
+
+  .summary-row { display: flex; gap: 10px; margin-bottom: 6px; }
+  .summary-card { flex: 1; border-radius: 18px; padding: 14px; text-align: center; }
+  .summary-card.day { background: #FFE3EE; }
+  .summary-card.month { background: #ECE3FB; }
+  .summary-card .label { font-size: 11.5px; font-weight: 700; color: #8A7A9E; margin-bottom: 4px; }
+  .summary-card .value { font-size: 19px; font-weight: 800; color: #3A2E4D; }
+
+  .month-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .month-nav button {
+    border: none; background: #fff; width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    box-shadow: 0 3px 8px rgba(155,126,222,0.18); color: #9B7EDE; font-size: 16px; font-weight: 800;
+  }
+  .month-nav .month-label { font-weight: 800; font-size: 16px; display: flex; align-items: center; gap: 6px; }
+
+  .month-total-banner {
+    text-align: center; background: linear-gradient(90deg,#FFE3EE,#ECE3FB);
+    border-radius: 18px; padding: 12px; margin-bottom: 16px; font-weight: 700; font-size: 13.5px; color: #6B5A80;
+  }
+  .month-total-banner b { font-size: 17px; color: #FF4785; }
+
+  .day-group { margin-bottom: 16px; }
+  .day-group-head { display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px 8px; }
+  .day-group-head .d { font-weight: 800; font-size: 14.5px; }
+  .day-group-head .t { font-size: 13px; color: #FF4785; font-weight: 700; }
+
+  .entry-row {
+    background: #fff; border-radius: 16px; padding: 12px 14px; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 10px; box-shadow: 0 3px 10px rgba(155,126,222,0.10);
+  }
+  .cat-badge { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; flex-shrink: 0; }
+  .entry-mid { flex: 1; min-width: 0; }
+  .entry-amt { font-weight: 800; font-size: 15px; }
+  .entry-memo { font-size: 12px; color: #9B8AA8; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .del-btn { border: none; background: #FFF3F6; color: #FF6FA5; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; font-size: 14px; }
+
+  .empty-state { text-align: center; padding: 40px 10px; color: #B3A4C7; }
+  .empty-state .emoji { font-size: 34px; margin-bottom: 8px; }
+
+  .year-banner {
+    text-align: center; background: linear-gradient(90deg,#FFE3EE,#ECE3FB);
+    border-radius: 20px; padding: 18px; margin-bottom: 16px;
+  }
+  .year-banner .label { font-size: 12.5px; font-weight: 700; color: #8A7A9E; margin-bottom: 4px; }
+  .year-banner .value { font-size: 26px; font-weight: 800; color: #FF4785; }
+
+  .month-card {
+    background: #fff; border-radius: 16px; padding: 13px 16px; margin-bottom: 8px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 3px 10px rgba(155,126,222,0.10); cursor: pointer; border: 2px solid transparent;
+    transition: border 0.15s, transform 0.1s;
+  }
+  .month-card:hover { border-color: #FFCFE1; transform: translateY(-1px); }
+  .month-card.empty { opacity: 0.45; cursor: default; }
+  .month-card .m-name { font-weight: 800; font-size: 15px; }
+  .month-card .m-total { font-weight: 800; font-size: 15px; color: #FF4785; }
+  .month-card .m-count { font-size: 11.5px; color: #B3A4C7; margin-left: 6px; }
+
+  .connect-note {
+    text-align: center; font-size: 11.5px; color: #B3A4C7; margin-top: 18px; line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="header">
+    <p class="title">おかね日記</p>
+    <p class="subtitle">きょうの記録、くらげが見守るよ</p>
+    <div class="jelly-wrap">
+      <div class="jelly-blob" id="jellyBlob">
+        <div class="jelly-liquid" id="jellyLiquid" style="height:4%">
+          <div class="wave wave1"></div>
+          <div class="wave wave2"></div>
+        </div>
+        <div class="bubble b1"></div>
+        <div class="bubble b2"></div>
+        <div class="bubble b3"></div>
+        <div class="jelly-face">
+          <div class="eye eye-l"></div>
+          <div class="eye eye-r"></div>
+          <div class="mouth"></div>
+        </div>
+        <div class="tentacle t1"></div>
+        <div class="tentacle t2"></div>
+        <div class="tentacle t3"></div>
+        <div class="tentacle t4"></div>
+      </div>
+      <div class="confetti" id="confetti"></div>
+    </div>
+    <p class="today-line">今日の合計 <b id="todayLine">¥0</b></p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tabInputBtn">きろく</button>
+    <button class="tab-btn" id="tabHistoryBtn">りれき</button>
+    <button class="tab-btn" id="tabSummaryBtn">集計</button>
+  </div>
+
+  <div id="inputView">
+    <div class="card">
+      <div class="field">
+        <label class="field-label">日付</label>
+        <input type="date" id="dateInput">
+      </div>
+      <div class="field">
+        <label class="field-label">項目</label>
+        <div class="chip-row" id="chipRow"></div>
+      </div>
+      <div class="field">
+        <label class="field-label">金額</label>
+        <div class="amount-yen">
+          <span>¥</span>
+          <input type="number" inputmode="numeric" min="0" placeholder="0" id="amountInput">
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:18px;">
+        <label class="field-label">メモ（任意）</label>
+        <input type="text" placeholder="例：〇〇さんから入金" id="memoInput">
+      </div>
+      <button class="add-btn" id="addBtn">✨ 記録する</button>
+    </div>
+    <div class="summary-row">
+      <div class="summary-card day">
+        <div class="label">今日の合計</div>
+        <div class="value" id="todaySummary">¥0</div>
+      </div>
+      <div class="summary-card month">
+        <div class="label">今月の合計</div>
+        <div class="value" id="monthSummary">¥0</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="historyView" style="display:none;">
+    <div class="month-nav">
+      <button id="prevMonthBtn">‹</button>
+      <div class="month-label" id="monthLabel"></div>
+      <button id="nextMonthBtn">›</button>
+    </div>
+    <div class="month-total-banner">この月の合計　<b id="historyMonthTotal">¥0</b></div>
+    <div id="historyList"></div>
+  </div>
+
+  <div id="summaryView" style="display:none;">
+    <div class="month-nav">
+      <button id="prevYearBtn">‹</button>
+      <div class="month-label" id="yearLabel"></div>
+      <button id="nextYearBtn">›</button>
+    </div>
+    <div class="year-banner">
+      <div class="label">年間の合計</div>
+      <div class="value" id="yearTotal">¥0</div>
+    </div>
+    <div id="monthList"></div>
+    <div class="connect-note">スプレッドシート連携を追加すると、ここに顧客ごとの記録も表示できるようになります</div>
+  </div>
+</div>
+
+<script>
+const CATEGORIES = [
+  { key: "A", label: "A", color: "#FF6FA5", soft: "#FFE3EE" },
+  { key: "B", label: "B", color: "#22C39A", soft: "#DCF8EF" },
+  { key: "C", label: "C", color: "#FFB100", soft: "#FFF1D1" },
+  { key: "その他", label: "その他", color: "#9B7EDE", soft: "#ECE3FB" },
+];
+const STORAGE_KEY = "income-diary-entries";
+
+function catInfo(key) { return CATEGORIES.find(c => c.key === key) || CATEGORIES[3]; }
+function todayStr() {
+  const d = new Date();
+  const tz = d.getTimezoneOffset() * 60000;
+  return new Date(d - tz).toISOString().slice(0, 10);
+}
+function monthStr(dateStr) { return dateStr.slice(0, 7); }
+function yearStr(dateStr) { return dateStr.slice(0, 4); }
+function formatYen(n) { return "¥" + Number(n || 0).toLocaleString("ja-JP"); }
+function formatDateLabel(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  const wd = ["日","月","火","水","木","金","土"][dt.getDay()];
+  return `${m}月${d}日（${wd}）`;
+}
+function shiftMonth(monthKey, delta) {
+  const [y, m] = monthKey.split("-").map(Number);
+  const dt = new Date(y, m - 1 + delta, 1);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+}
+function monthLabel(monthKey) {
+  const [y, m] = monthKey.split("-").map(Number);
+  return `${y}年${m}月`;
+}
+
+function loadEntries() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+function saveEntries(entries) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); } catch (e) {}
+}
+
+let entries = loadEntries();
+let category = "A";
+let tab = "input";
+let historyMonth = monthStr(todayStr());
+let summaryYear = yearStr(todayStr());
+
+const dateInput = document.getElementById("dateInput");
+const chipRow = document.getElementById("chipRow");
+const amountInput = document.getElementById("amountInput");
+const memoInput = document.getElementById("memoInput");
+const addBtn = document.getElementById("addBtn");
+dateInput.value = todayStr();
+
+CATEGORIES.forEach(c => {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "chip";
+  btn.textContent = c.label;
+  btn.dataset.key = c.key;
+  btn.addEventListener("click", () => { category = c.key; renderChips(); });
+  chipRow.appendChild(btn);
+});
+
+function renderChips() {
+  [...chipRow.children].forEach(btn => {
+    const c = catInfo(btn.dataset.key);
+    const sel = btn.dataset.key === category;
+    btn.classList.toggle("selected", sel);
+    btn.style.background = sel ? c.soft : "#F9F6FB";
+    btn.style.borderColor = sel ? c.color : "transparent";
+    btn.style.color = sel ? c.color : "#B3A4C7";
+  });
+}
+renderChips();
+
+function todayTotal() {
+  return entries.filter(e => e.date === todayStr()).reduce((s, e) => s + Number(e.amount), 0);
+}
+function thisMonthTotal() {
+  return entries.filter(e => monthStr(e.date) === monthStr(todayStr())).reduce((s, e) => s + Number(e.amount), 0);
+}
+function historyMonthTotalCalc() {
+  return entries.filter(e => monthStr(e.date) === historyMonth).reduce((s, e) => s + Number(e.amount), 0);
+}
+
+function renderSummary() {
+  document.getElementById("todayLine").textContent = formatYen(todayTotal());
+  document.getElementById("todaySummary").textContent = formatYen(todayTotal());
+  document.getElementById("monthSummary").textContent = formatYen(thisMonthTotal());
+  const pct = Math.max(4, Math.min(100, (todayTotal() / 10000) * 100));
+  document.getElementById("jellyLiquid").style.height = pct + "%";
+}
+
+function renderHistory() {
+  document.getElementById("monthLabel").textContent = monthLabel(historyMonth);
+  document.getElementById("historyMonthTotal").textContent = formatYen(historyMonthTotalCalc());
+  const inMonth = entries.filter(e => monthStr(e.date) === historyMonth);
+  const byDate = {};
+  inMonth.forEach(e => { (byDate[e.date] = byDate[e.date] || []).push(e); });
+  const dates = Object.keys(byDate).sort((a, b) => (a < b ? 1 : -1));
+  const list = document.getElementById("historyList");
+  list.innerHTML = "";
+  if (dates.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="emoji">🎐</div>この月の記録はまだないよ</div>';
+    return;
+  }
+  dates.forEach(d => {
+    const dayEntries = byDate[d].sort((a, b) => b.createdAt - a.createdAt);
+    const dayTotal = dayEntries.reduce((s, e) => s + Number(e.amount), 0);
+    const group = document.createElement("div");
+    group.className = "day-group";
+    const head = document.createElement("div");
+    head.className = "day-group-head";
+    head.innerHTML = `<span class="d">${formatDateLabel(d)}</span><span class="t">${formatYen(dayTotal)}</span>`;
+    group.appendChild(head);
+    dayEntries.forEach(e => {
+      const ci = catInfo(e.category);
+      const row = document.createElement("div");
+      row.className = "entry-row";
+      row.innerHTML = `
+        <div class="cat-badge" style="background:${ci.soft};color:${ci.color}">${ci.label}</div>
+        <div class="entry-mid">
+          <div class="entry-amt">${formatYen(e.amount)}</div>
+          ${e.memo ? `<div class="entry-memo"></div>` : ""}
+        </div>
+        <button class="del-btn" aria-label="削除">🗑</button>`;
+      if (e.memo) row.querySelector(".entry-memo").textContent = e.memo;
+      row.querySelector(".del-btn").addEventListener("click", () => {
+        entries = entries.filter(x => x.id !== e.id);
+        saveEntries(entries);
+        renderAll();
+      });
+      group.appendChild(row);
+    });
+    list.appendChild(group);
+  });
+}
+
+function renderYearSummary() {
+  document.getElementById("yearLabel").textContent = summaryYear + "年";
+  const yearEntries = entries.filter(e => yearStr(e.date) === summaryYear);
+  const yTotal = yearEntries.reduce((s, e) => s + Number(e.amount), 0);
+  document.getElementById("yearTotal").textContent = formatYen(yTotal);
+
+  const list = document.getElementById("monthList");
+  list.innerHTML = "";
+  for (let m = 1; m <= 12; m++) {
+    const mm = String(m).padStart(2, "0");
+    const key = `${summaryYear}-${mm}`;
+    const monthEntries = entries.filter(e => monthStr(e.date) === key);
+    const total = monthEntries.reduce((s, e) => s + Number(e.amount), 0);
+    const card = document.createElement("div");
+    card.className = "month-card" + (monthEntries.length === 0 ? " empty" : "");
+    card.innerHTML = `<span class="m-name">${m}月<span class="m-count">${monthEntries.length > 0 ? monthEntries.length + "件" : ""}</span></span><span class="m-total">${formatYen(total)}</span>`;
+    if (monthEntries.length > 0) {
+      card.addEventListener("click", () => {
+        historyMonth = key;
+        switchTab("history");
+      });
+    }
+    list.appendChild(card);
+  }
+}
+
+function renderAll() { renderSummary(); renderHistory(); renderYearSummary(); }
+
+function celebrate() {
+  const blob = document.getElementById("jellyBlob");
+  blob.classList.add("jelly-pop");
+  setTimeout(() => blob.classList.remove("jelly-pop"), 500);
+  const confetti = document.getElementById("confetti");
+  confetti.innerHTML = "";
+  for (let i = 0; i < 14; i++) {
+    const p = document.createElement("span");
+    p.className = "confetti-piece";
+    p.style.left = (8 + Math.random() * 84) + "%";
+    p.style.animationDelay = (Math.random() * 0.15) + "s";
+    p.style.background = CATEGORIES[i % CATEGORIES.length].color;
+    p.style.transform = `rotate(${Math.random() * 360}deg)`;
+    confetti.appendChild(p);
+  }
+  setTimeout(() => { confetti.innerHTML = ""; }, 950);
+}
+
+addBtn.addEventListener("click", () => {
+  const amt = Number(amountInput.value);
+  const date = dateInput.value;
+  if (!date || !amt || amt <= 0) return;
+  const entry = {
+    id: Date.now() + "-" + Math.random().toString(36).slice(2, 8),
+    date, category, amount: amt, memo: memoInput.value.trim(), createdAt: Date.now(),
+  };
+  entries = [entry, ...entries];
+  saveEntries(entries);
+  amountInput.value = "";
+  memoInput.value = "";
+  celebrate();
+  renderAll();
+});
+
+document.getElementById("tabInputBtn").addEventListener("click", () => switchTab("input"));
+document.getElementById("tabHistoryBtn").addEventListener("click", () => switchTab("history"));
+document.getElementById("tabSummaryBtn").addEventListener("click", () => switchTab("summary"));
+function switchTab(t) {
+  tab = t;
+  document.getElementById("tabInputBtn").classList.toggle("active", t === "input");
+  document.getElementById("tabHistoryBtn").classList.toggle("active", t === "history");
+  document.getElementById("tabSummaryBtn").classList.toggle("active", t === "summary");
+  document.getElementById("inputView").style.display = t === "input" ? "block" : "none";
+  document.getElementById("historyView").style.display = t === "history" ? "block" : "none";
+  document.getElementById("summaryView").style.display = t === "summary" ? "block" : "none";
+  if (t === "history") renderHistory();
+  if (t === "summary") renderYearSummary();
+}
+
+document.getElementById("prevMonthBtn").addEventListener("click", () => { historyMonth = shiftMonth(historyMonth, -1); renderHistory(); });
+document.getElementById("nextMonthBtn").addEventListener("click", () => { historyMonth = shiftMonth(historyMonth, 1); renderHistory(); });
+document.getElementById("prevYearBtn").addEventListener("click", () => { summaryYear = String(Number(summaryYear) - 1); renderYearSummary(); });
+document.getElementById("nextYearBtn").addEventListener("click", () => { summaryYear = String(Number(summaryYear) + 1); renderYearSummary(); });
+
+renderAll();
+</script>
+</body>
+</html>
