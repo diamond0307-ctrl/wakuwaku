@@ -13,6 +13,36 @@ const CATEGORIES = [
 
 const catInfo = (key) => CATEGORIES.find((c) => c.key === key) || CATEGORIES[4];
 
+// Google Apps Scriptで発行したウェブアプリのURLをここに貼る（バックアップ用スプレッドシートへの書き込み先）
+const SPREADSHEET_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyJtx2BXRkrmRwZf0B_xnvZNyAUOQvbdkRTQdidbClPWqKEb3u8IfxQY7EhEKXAtNrr/exec";
+
+function sendToSheet(entry) {
+  if (!SPREADSHEET_WEBHOOK_URL) return; // URL未設定の間は何もしない
+  fetch(SPREADSHEET_WEBHOOK_URL, {
+    method: "POST",
+    mode: "no-cors", // Apps Script側のCORS制約回避。レスポンスは読めないため送信成功の確認はできない
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({
+      action: "add",
+      id: entry.id,
+      date: entry.date,
+      category: entry.category,
+      amount: entry.amount,
+      memo: entry.memo,
+    }),
+  }).catch(() => {}); // 失敗してもアプリ側の動作は止めない（記録はストレージに保存済みのため）
+}
+
+function sendDeleteToSheet(id) {
+  if (!SPREADSHEET_WEBHOOK_URL) return;
+  fetch(SPREADSHEET_WEBHOOK_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action: "delete", id }),
+  }).catch(() => {});
+}
+
 const JELLY_MESSAGES = [
   "なち、おつかれさま",
   "なち、今日も頑張ったね",
@@ -238,6 +268,7 @@ export default function IncomeDiary() {
     };
     const next = [entry, ...entries];
     await persist(next);
+    sendToSheet(entry);
     setAmount("");
     setMemo("");
     setSaving(false);
@@ -253,6 +284,7 @@ export default function IncomeDiary() {
   async function handleDelete(id) {
     const next = entries.filter((e) => e.id !== id);
     await persist(next);
+    sendDeleteToSheet(id);
   }
 
   const mascotPct = Math.min(100, (todayTotal / 10000) * 100);

@@ -354,6 +354,36 @@ const CATEGORIES = [
   { key: "その他", label: "その他", color: "#9B8AA8", soft: "#ECE7F1" },
 ];
 const STORAGE_KEY = "income-diary-entries";
+
+// Google Apps Scriptで発行したウェブアプリのURLをここに貼る（バックアップ用スプレッドシートへの書き込み先）
+const SPREADSHEET_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyJtx2BXRkrmRwZf0B_xnvZNyAUOQvbdkRTQdidbClPWqKEb3u8IfxQY7EhEKXAtNrr/exec";
+
+function sendToSheet(entry) {
+  if (!SPREADSHEET_WEBHOOK_URL) return; // URL未設定の間は何もしない
+  fetch(SPREADSHEET_WEBHOOK_URL, {
+    method: "POST",
+    mode: "no-cors", // Apps Script側のCORS制約回避。レスポンスは読めないため送信成功の確認はできない
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({
+      action: "add",
+      id: entry.id,
+      date: entry.date,
+      category: entry.category,
+      amount: entry.amount,
+      memo: entry.memo,
+    }),
+  }).catch(() => {}); // 失敗してもアプリ側の動作は止めない（記録はlocalStorageに保存済みのため）
+}
+
+function sendDeleteToSheet(id) {
+  if (!SPREADSHEET_WEBHOOK_URL) return;
+  fetch(SPREADSHEET_WEBHOOK_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action: "delete", id }),
+  }).catch(() => {});
+}
 const JELLY_MESSAGES = [
   "なち、おつかれさま",
   "なち、今日も頑張ったね",
@@ -504,6 +534,7 @@ function renderHistory() {
       row.querySelector(".del-btn").addEventListener("click", () => {
         entries = entries.filter(x => x.id !== e.id);
         saveEntries(entries);
+        sendDeleteToSheet(e.id);
         renderAll();
       });
       group.appendChild(row);
@@ -577,6 +608,7 @@ addBtn.addEventListener("click", () => {
   };
   entries = [entry, ...entries];
   saveEntries(entries);
+  sendToSheet(entry);
   amountInput.value = "";
   memoInput.value = "";
   document.getElementById("jellyWrap").scrollIntoView({ behavior: "smooth", block: "center" });
